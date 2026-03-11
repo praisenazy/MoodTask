@@ -15,7 +15,6 @@ class _MoodSelectorState extends State<MoodSelector>
   late AnimationController _backgroundController;
   late Animation<Color?> _backgroundAnimation;
 
-  // Define moods with their colors and info
   final Map<String, Map<String, dynamic>> moods = {
     'happy': {
       'emoji': '😊',
@@ -51,6 +50,13 @@ class _MoodSelectorState extends State<MoodSelector>
       'color': const Color(0xFFFCE4EC),
       'darkColor': const Color(0xFFC2185B),
       'description': 'Peace and mindfulness',
+    },
+    'motivated': {
+      'emoji': '🔥',
+      'name': 'Motivated',
+      'color': const Color(0xFFFFEBEE), // Light Orange
+      'darkColor': const Color(0xFFD32F2F), // Bright Red-Orange
+      'description': 'Ready to crush goals!',
     },
   };
 
@@ -271,7 +277,7 @@ class _MoodSelectorState extends State<MoodSelector>
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: isDarkMode
-                    ? [const Color(0xFF121212), const Color(0xFF1E1E1E)]
+                    ? [const Color(0xFF121212), const Color(0xFF121212)]
                     : [
                         _backgroundAnimation.value ?? Colors.grey[50]!,
                         Colors.white,
@@ -280,15 +286,14 @@ class _MoodSelectorState extends State<MoodSelector>
             ),
             child: SafeArea(
               child: Padding(
-                padding: const EdgeInsets.all(16), // Reduced padding
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    // Header - Reduced size
-                    const SizedBox(height: 20), // Reduced from 40
+                    const SizedBox(height: 20),
                     Text(
                       'How are you feeling today?',
                       style: TextStyle(
-                        fontSize: 24, // Reduced from 26
+                        fontSize: 24,
                         fontWeight: FontWeight.bold,
                         color: selectedMood != null
                             ? moods[selectedMood]!['darkColor']
@@ -304,21 +309,19 @@ class _MoodSelectorState extends State<MoodSelector>
                     Text(
                       'Choose your mood',
                       style: TextStyle(
-                        fontSize: 14, // Reduced from 15
+                        fontSize: 14,
                         color: isDarkMode ? Colors.white70 : Colors.grey[600],
                       ),
                       textAlign: TextAlign.center,
                     ),
 
-                    const SizedBox(height: 30), // Reduced from 60
-                    // Mood Buttons Grid - Simplified
+                    const SizedBox(height: 30),
                     Expanded(
                       child: GridView.count(
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
-                        childAspectRatio:
-                            1.2, // Increased for more width, less height
+                        childAspectRatio: 1.2,
                         children: moods.entries.map((entry) {
                           String moodKey = entry.key;
                           Map<String, dynamic> mood = entry.value;
@@ -333,23 +336,21 @@ class _MoodSelectorState extends State<MoodSelector>
                                           ? mood['darkColor'].withOpacity(0.3)
                                           : const Color(0xFF1E1E1E))
                                     : mood['color'],
-                                borderRadius: BorderRadius.circular(
-                                  16,
-                                ), // Reduced from 20
+                                borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
                                   color: isSelected
                                       ? mood['darkColor']
                                       : isDarkMode
                                       ? Colors.grey[700]!
                                       : Colors.transparent,
-                                  width: 2, // Reduced from 3
+                                  width: 2,
                                 ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: mood['darkColor'].withOpacity(0.15),
-                                    blurRadius: isSelected ? 12 : 6, // Reduced
-                                    spreadRadius: isSelected ? 1 : 0, // Reduced
-                                    offset: const Offset(0, 3), // Reduced
+                                    blurRadius: isSelected ? 12 : 6,
+                                    spreadRadius: isSelected ? 1 : 0,
+                                    offset: const Offset(0, 3),
                                   ),
                                 ],
                               ),
@@ -358,11 +359,9 @@ class _MoodSelectorState extends State<MoodSelector>
                                 children: [
                                   Text(
                                     mood['emoji'],
-                                    style: const TextStyle(
-                                      fontSize: 40,
-                                    ), // Reduced from 45
+                                    style: const TextStyle(fontSize: 40),
                                   ),
-                                  const SizedBox(height: 8), // Reduced from 10
+                                  const SizedBox(height: 8),
                                   Text(
                                     mood['name'],
                                     style: TextStyle(
@@ -374,12 +373,12 @@ class _MoodSelectorState extends State<MoodSelector>
                                     ),
                                   ),
                                   if (isSelected) ...[
-                                    const SizedBox(height: 4), // Reduced from 6
+                                    const SizedBox(height: 4),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 8,
                                         vertical: 2,
-                                      ), // Reduced
+                                      ),
                                       decoration: BoxDecoration(
                                         color: mood['darkColor'],
                                         borderRadius: BorderRadius.circular(8),
@@ -388,7 +387,7 @@ class _MoodSelectorState extends State<MoodSelector>
                                         '✓',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontSize: 10, // Reduced
+                                          fontSize: 10,
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -402,10 +401,9 @@ class _MoodSelectorState extends State<MoodSelector>
                       ),
                     ),
 
-                    // Simple Continue Button - NO COMPLEX ANIMATIONS
                     const SizedBox(height: 20),
                     if (selectedMood != null)
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {

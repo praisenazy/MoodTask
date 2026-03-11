@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/task.dart';
+import '../service/notifications_service.dart';
 
 class AddTask extends StatefulWidget {
   const AddTask({super.key});
@@ -20,6 +21,11 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
   Map<String, dynamic> currentMoodData = {};
   bool isDarkMode = false; // ADD DARK MODE SUPPORT
   bool isLoading = false;
+  DateTime? selectedReminderTime;
+  bool enableReminder = false;
+  String _formatDateTime(DateTime dateTime) {
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  }
 
   late AnimationController _slideController;
   late AnimationController _scaleController;
@@ -57,6 +63,13 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
       'name': 'Calm',
       'color': const Color(0xFFFCE4EC),
       'darkColor': const Color(0xFFC2185B),
+    },
+    'motivated': {
+      'emoji': '🔥',
+      'name': 'Motivated',
+      'color': const Color(0xFFFFEBEE), // Light Orange
+      'darkColor': const Color(0xFFD32F2F), // Bright Red-Orange
+      'description': 'Ready to crush goals!',
     },
   };
 
@@ -152,7 +165,6 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
     });
   }
 
-  // Save new task
   Future<void> _saveTask() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -168,32 +180,37 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
       category: selectedCategory,
       createdAt: DateTime.now(),
       mood: currentMood,
+      reminderTime: selectedReminderTime,
     );
 
-    // Load existing tasks
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? taskStrings = prefs.getStringList('tasks') ?? [];
-
-    // Add new task
     taskStrings.add(json.encode(newTask.toMap()));
-
-    // Save updated tasks
     await prefs.setStringList('tasks', taskStrings);
 
-    // Show success animation and navigate back
+    if (selectedReminderTime != null) {
+      NotificationService.scheduleTaskReminder(
+        id: int.parse(newTask.id),
+        taskTitle: newTask.title,
+        scheduledTime: selectedReminderTime!,
+        mood: currentMood,
+      ).catchError((error) {});
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+
     _showSuccessDialog();
   }
 
-  // Show success dialog
   void _showSuccessDialog() {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: isDarkMode
-              ? const Color(0xFF1E1E1E)
-              : Colors.white, // DARK MODE SUPPORT
+          backgroundColor: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -206,7 +223,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                 decoration: BoxDecoration(
                   color: isDarkMode
                       ? currentMoodData['darkColor'].withOpacity(0.2)
-                      : currentMoodData['color'], // DARK MODE SUPPORT
+                      : currentMoodData['color'],
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
@@ -230,7 +247,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                   fontWeight: FontWeight.bold,
                   color: isDarkMode
                       ? Colors.white
-                      : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                      : currentMoodData['darkColor'],
                 ),
               ),
               const SizedBox(height: 10),
@@ -238,9 +255,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                 'Your task has been saved successfully',
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDarkMode
-                      ? Colors.white70
-                      : Colors.grey[600], // DARK MODE SUPPORT
+                  color: isDarkMode ? Colors.white70 : Colors.grey[600],
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -250,8 +265,8 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
             Center(
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Go back to todo list
+                  Navigator.of(context).pop();
+                  Navigator.of(context).pop();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: currentMoodData['darkColor'],
@@ -278,7 +293,6 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
     );
   }
 
-  // Generate task suggestions based on mood
   List<String> _getMoodBasedSuggestions() {
     switch (currentMood) {
       case 'happy':
@@ -302,6 +316,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
           'Organize workspace',
           'Review goals and priorities',
         ];
+
       case 'productive':
         return [
           'Finish pending assignments',
@@ -315,6 +330,13 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
           'Read a book',
           'Take a peaceful walk',
           'Do some deep breathing',
+        ];
+      case 'motivated':
+        return [
+          'Start that big project',
+          'Set a new personal goal',
+          'Learn a challenging skill',
+          'Work on your biggest dream',
         ];
       default:
         return [];
@@ -339,17 +361,13 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDarkMode
-                ? [const Color(0xFF121212), const Color(0xFF1E1E1E)]
-                : [
-                    currentMoodData['color'] ?? Colors.blue[50]!,
-                    Colors.white,
-                  ], // DARK MODE SUPPORT
+                ? [const Color(0xFF121212), const Color(0xFF121212)]
+                : [currentMoodData['color'] ?? Colors.blue[50]!, Colors.white],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Header
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -365,7 +383,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -386,7 +404,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                           fontWeight: FontWeight.bold,
                           color: isDarkMode
                               ? Colors.white
-                              : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                              : currentMoodData['darkColor'],
                         ),
                       ),
                     ),
@@ -395,7 +413,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                       decoration: BoxDecoration(
                         color: isDarkMode
                             ? const Color(0xFF1E1E1E)
-                            : Colors.white, // DARK MODE SUPPORT
+                            : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -407,7 +425,6 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Main content
               Expanded(
                 child: SlideTransition(
                   position: _slideAnimation,
@@ -428,7 +445,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                 fontWeight: FontWeight.bold,
                                 color: isDarkMode
                                     ? Colors.white
-                                    : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                                    : currentMoodData['darkColor'],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -436,18 +453,18 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                               controller: _titleController,
                               style: TextStyle(
                                 color: isDarkMode ? Colors.white : Colors.black,
-                              ), // DARK MODE SUPPORT
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'What do you want to accomplish?',
                                 hintStyle: TextStyle(
                                   color: isDarkMode
                                       ? Colors.white54
                                       : Colors.grey[600],
-                                ), // DARK MODE SUPPORT
+                                ),
                                 filled: true,
                                 fillColor: isDarkMode
                                     ? const Color(0xFF1E1E1E)
-                                    : Colors.white, // DARK MODE SUPPORT
+                                    : Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
                                   borderSide: BorderSide.none,
@@ -474,7 +491,6 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
 
                             const SizedBox(height: 24),
 
-                            // Task Description
                             Text(
                               'Description (Optional)',
                               style: TextStyle(
@@ -482,7 +498,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                 fontWeight: FontWeight.bold,
                                 color: isDarkMode
                                     ? Colors.white
-                                    : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                                    : currentMoodData['darkColor'],
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -491,18 +507,18 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                               maxLines: 3,
                               style: TextStyle(
                                 color: isDarkMode ? Colors.white : Colors.black,
-                              ), // DARK MODE SUPPORT
+                              ),
                               decoration: InputDecoration(
                                 hintText: 'Add more details about this task...',
                                 hintStyle: TextStyle(
                                   color: isDarkMode
                                       ? Colors.white54
                                       : Colors.grey[600],
-                                ), // DARK MODE SUPPORT
+                                ),
                                 filled: true,
                                 fillColor: isDarkMode
                                     ? const Color(0xFF1E1E1E)
-                                    : Colors.white, // DARK MODE SUPPORT
+                                    : Colors.white,
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(15),
                                   borderSide: BorderSide.none,
@@ -525,7 +541,6 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                             ),
                             const SizedBox(height: 24),
 
-                            // Category Selection
                             Text(
                               'Category',
                               style: TextStyle(
@@ -533,11 +548,11 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                 fontWeight: FontWeight.bold,
                                 color: isDarkMode
                                     ? Colors.white
-                                    : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                                    : currentMoodData['darkColor'],
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Container(
+                            SizedBox(
                               height: 120,
                               child: ListView.builder(
                                 scrollDirection: Axis.horizontal,
@@ -568,22 +583,20 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                             ? currentMoodData['darkColor']
                                             : (isDarkMode
                                                   ? const Color(0xFF1E1E1E)
-                                                  : Colors
-                                                        .white), // DARK MODE SUPPORT
+                                                  : Colors.white),
                                         borderRadius: BorderRadius.circular(15),
                                         border: Border.all(
                                           color: isSelected
                                               ? currentMoodData['darkColor']
                                               : (isDarkMode
                                                     ? Colors.grey[700]!
-                                                    : Colors
-                                                          .grey[300]!), // DARK MODE SUPPORT
+                                                    : Colors.grey[300]!),
                                           width: 2,
                                         ),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.05,
+                                            color: Colors.black.withValues(
+                                              alpha: 0.05,
                                             ),
                                             blurRadius: 8,
                                             offset: const Offset(0, 2),
@@ -610,7 +623,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                                   ? Colors.white
                                                   : (isDarkMode
                                                         ? Colors.white
-                                                        : currentMoodData['darkColor']), // DARK MODE SUPPORT
+                                                        : currentMoodData['darkColor']),
                                             ),
                                             textAlign: TextAlign.center,
                                           ),
@@ -623,8 +636,167 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                             ),
 
                             const SizedBox(height: 24),
+                            Text(
+                              'Set Reminder (Optional)',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDarkMode
+                                    ? Colors.white
+                                    : currentMoodData['darkColor'],
+                              ),
+                            ),
+                            SizedBox(height: 12),
 
-                            // Mood-based suggestions
+                            Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDarkMode
+                                    ? Color(0xFF1E1E1E)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(15),
+                                border: Border.all(
+                                  color: isDarkMode
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[300]!,
+                                  width: 2,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.notifications_active,
+                                    color: currentMoodData['darkColor'],
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Enable Reminder',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                        color: isDarkMode
+                                            ? Colors.white
+                                            : Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                  Switch(
+                                    value: enableReminder,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        enableReminder = value;
+                                        if (!value) {
+                                          selectedReminderTime = null;
+                                        }
+                                      });
+                                    },
+                                    activeThumbColor:
+                                        currentMoodData['darkColor'],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            if (enableReminder) ...[
+                              SizedBox(height: 12),
+                              GestureDetector(
+                                onTap: () async {
+                                  DateTime? pickedDate = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime.now(),
+                                    lastDate: DateTime.now().add(
+                                      Duration(days: 365),
+                                    ),
+                                    builder: (context, child) {
+                                      return Theme(
+                                        data: Theme.of(context).copyWith(
+                                          colorScheme: ColorScheme.light(
+                                            primary:
+                                                currentMoodData['darkColor'],
+                                          ),
+                                        ),
+                                        child: child!,
+                                      );
+                                    },
+                                  );
+
+                                  if (pickedDate != null) {
+                                    TimeOfDay?
+                                    pickedTime = await showTimePicker(
+                                      context: context,
+                                      initialTime: TimeOfDay.now(),
+                                      builder: (context, child) {
+                                        return Theme(
+                                          data: Theme.of(context).copyWith(
+                                            colorScheme: ColorScheme.light(
+                                              primary:
+                                                  currentMoodData['darkColor'],
+                                            ),
+                                          ),
+                                          child: child!,
+                                        );
+                                      },
+                                    );
+
+                                    if (pickedTime != null) {
+                                      setState(() {
+                                        selectedReminderTime = DateTime(
+                                          pickedDate.year,
+                                          pickedDate.month,
+                                          pickedDate.day,
+                                          pickedTime.hour,
+                                          pickedTime.minute,
+                                        );
+                                      });
+                                    }
+                                  }
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: isDarkMode
+                                        ? currentMoodData['darkColor']
+                                              ?.withOpacity(0.2)
+                                        : currentMoodData['color'],
+                                    borderRadius: BorderRadius.circular(15),
+                                    border: Border.all(
+                                      color: currentMoodData['darkColor'],
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.alarm,
+                                        color: currentMoodData['darkColor'],
+                                      ),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          selectedReminderTime != null
+                                              ? 'Reminder: ${_formatDateTime(selectedReminderTime!)}'
+                                              : 'Tap to set date & time',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : currentMoodData['darkColor'],
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        color: currentMoodData['darkColor'],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 14),
                             Text(
                               'Suggestions for your ${currentMoodData['name']} mood',
                               style: TextStyle(
@@ -632,7 +804,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                 fontWeight: FontWeight.bold,
                                 color: isDarkMode
                                     ? Colors.white
-                                    : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                                    : currentMoodData['darkColor'],
                               ),
                             ),
                             const SizedBox(height: 12),
@@ -655,7 +827,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                       color: isDarkMode
                                           ? currentMoodData['darkColor']
                                                 .withOpacity(0.2)
-                                          : currentMoodData['color'], // DARK MODE SUPPORT
+                                          : currentMoodData['color'],
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
                                         color: currentMoodData['darkColor']
@@ -668,7 +840,7 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                                         fontSize: 14,
                                         color: isDarkMode
                                             ? Colors.white
-                                            : currentMoodData['darkColor'], // DARK MODE SUPPORT
+                                            : currentMoodData['darkColor'],
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -686,10 +858,9 @@ class _AddTaskState extends State<AddTask> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Save Button
               Padding(
                 padding: const EdgeInsets.all(20),
-                child: Container(
+                child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: isLoading ? null : _saveTask,

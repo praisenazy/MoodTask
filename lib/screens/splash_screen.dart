@@ -5,7 +5,6 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  // ignore: library_private_types_in_public_api
   _SplashScreenState createState() => _SplashScreenState();
 }
 
@@ -20,13 +19,11 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Animation for fade in effect
     _fadeController = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
     );
 
-    // Animation for color change based on time
     _colorController = AnimationController(
       duration: const Duration(seconds: 3),
       vsync: this,
@@ -36,39 +33,34 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
 
-    // Color changes based on time of day
     Color timeBasedColor = _getTimeBasedColor();
     _colorAnimation = ColorTween(begin: Colors.grey[300], end: timeBasedColor)
         .animate(
           CurvedAnimation(parent: _colorController, curve: Curves.easeInOut),
         );
 
-    // Start animations
     _fadeController.forward();
     _colorController.forward();
 
-    // Navigate to mood selector after 10 seconds
     Timer(const Duration(seconds: 6), () {
       Navigator.pushReplacementNamed(context, '/mood-selector');
     });
   }
 
-  // Function to get color based on time of day
   Color _getTimeBasedColor() {
     int hour = DateTime.now().hour;
 
     if (hour >= 6 && hour < 12) {
-      return Colors.blue; // Morning - Blue
+      return Colors.blue;
     } else if (hour >= 12 && hour < 17) {
-      return Colors.orange; // Afternoon - Orange
+      return Colors.orange;
     } else if (hour >= 17 && hour < 21) {
-      return Colors.purple; // Evening - Purple
+      return Colors.purple;
     } else {
-      return Colors.indigo; // Night - Dark Blue
+      return Colors.indigo;
     }
   }
 
-  // Function to get greeting based on time
   String _getTimeBasedGreeting() {
     int hour = DateTime.now().hour;
 
@@ -97,15 +89,14 @@ class _SplashScreenState extends State<SplashScreen>
         animation: Listenable.merge([_fadeAnimation, _colorAnimation]),
         builder: (context, child) {
           return Container(
-            // Gradient background that changes with time
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
                   _colorAnimation.value ?? Colors.blue,
-                  _colorAnimation.value?.withOpacity(0.3) ??
-                      Colors.blue.withOpacity(0.3),
+                  _colorAnimation.value?.withValues(alpha: 0.3) ??
+                      Colors.blue.withValues(alpha: 0.3),
                   Colors.white,
                 ],
               ),
@@ -114,7 +105,6 @@ class _SplashScreenState extends State<SplashScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // App Logo (using emoji as simple logo)
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Container(
@@ -125,7 +115,7 @@ class _SplashScreenState extends State<SplashScreen>
                         color: Colors.white,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
+                            color: Colors.black.withValues(alpha: 0.1),
                             blurRadius: 20,
                             spreadRadius: 5,
                           ),
@@ -139,7 +129,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 30),
 
-                  // App Name
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Text(
@@ -151,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
                         shadows: [
                           Shadow(
                             blurRadius: 10.0,
-                            color: Colors.black.withOpacity(0.3),
+                            color: Colors.black.withValues(alpha: 0.3),
                             offset: const Offset(2.0, 2.0),
                           ),
                         ],
@@ -161,14 +150,13 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 10),
 
-                  // Tagline
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Text(
                       'Tasks that match your mood',
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w300,
                       ),
                     ),
@@ -176,7 +164,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 50),
 
-                  // Time-based greeting
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: Container(
@@ -185,10 +172,10 @@ class _SplashScreenState extends State<SplashScreen>
                         vertical: 15,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                          color: Colors.white.withValues(alpha: 0.3),
                           width: 1,
                         ),
                       ),
@@ -205,7 +192,6 @@ class _SplashScreenState extends State<SplashScreen>
 
                   const SizedBox(height: 80),
 
-                  // Loading indicator
                   FadeTransition(
                     opacity: _fadeAnimation,
                     child: const SizedBox(

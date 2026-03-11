@@ -5,8 +5,11 @@ import 'screens/mood_selector.dart';
 import 'screens/todo_list.dart';
 import 'screens/add_task.dart';
 import 'screens/settings.dart';
+import 'service/notifications_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   runApp(const MoodTaskApp());
 }
 
@@ -26,7 +29,6 @@ class _MoodTaskAppState extends State<MoodTaskApp> {
     _loadThemePreference();
   }
 
-  // Load saved theme preference
   Future<void> _loadThemePreference() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -34,7 +36,6 @@ class _MoodTaskAppState extends State<MoodTaskApp> {
     });
   }
 
-  // Method to update theme (can be called from settings)
   void updateTheme(bool darkMode) {
     setState(() {
       isDarkMode = darkMode;
@@ -47,7 +48,6 @@ class _MoodTaskAppState extends State<MoodTaskApp> {
       title: 'MoodTask',
       debugShowCheckedModeBanner: false,
 
-      // Define light theme
       theme: ThemeData(
         brightness: Brightness.light,
         primarySwatch: Colors.blue,
@@ -61,7 +61,6 @@ class _MoodTaskAppState extends State<MoodTaskApp> {
         dividerColor: Colors.grey[300],
       ),
 
-      // Define dark theme
       darkTheme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.blue,
@@ -79,7 +78,6 @@ class _MoodTaskAppState extends State<MoodTaskApp> {
         ),
       ),
 
-      // Use the theme mode based on user preference
       themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
 
       home: const SplashScreen(),

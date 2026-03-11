@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/task.dart';
+import '../utils/smart_suggestions.dart';
 
 class TodoList extends StatefulWidget {
   const TodoList({super.key});
@@ -56,9 +57,7 @@ class _TodoListState extends State<TodoList>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(
-      this,
-    ); // ADD THIS - Listen for app state changes
+    WidgetsBinding.instance.addObserver(this);
 
     _listController = AnimationController(
       duration: const Duration(milliseconds: 400),
@@ -74,18 +73,15 @@ class _TodoListState extends State<TodoList>
     _loadDarkModePreference();
     _loadTasks();
 
-    // Start animations
     Future.delayed(const Duration(milliseconds: 500), () {
       _listController.forward();
       _fabController.forward();
     });
   }
 
-  // ADD THIS - Listen for app lifecycle changes
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      // Reload dark mode preference when app resumes
       _loadDarkModePreference();
     }
   }
@@ -94,7 +90,7 @@ class _TodoListState extends State<TodoList>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _loadTasks();
-    _loadDarkModePreference(); // ADD THIS - Reload when dependencies change
+    _loadDarkModePreference();
   }
 
   Future<void> _loadDarkModePreference() async {
@@ -172,13 +168,12 @@ class _TodoListState extends State<TodoList>
   void _navigateToAddTask() async {
     await Navigator.pushNamed(context, '/add-task');
     _loadTasks();
-    _loadDarkModePreference(); // ADD THIS - Reload theme when returning
+    _loadDarkModePreference();
   }
 
-  // ADD THIS - Method to navigate to settings and reload theme when returning
   void _navigateToSettings() async {
     await Navigator.pushNamed(context, '/settings');
-    _loadDarkModePreference(); // Reload theme when returning from settings
+    _loadDarkModePreference();
   }
 
   String _getCategoryIcon(String category) {
@@ -216,10 +211,15 @@ class _TodoListState extends State<TodoList>
       currentMoodData = arguments['moodData'];
     }
 
-    List<Task> completedTasks = tasks
+    List<Task> moodTasks = tasks
+        .where((task) => task.mood == currentMood)
+        .toList();
+    List<Task> completedTasks = moodTasks
         .where((task) => task.isCompleted)
         .toList();
-    List<Task> pendingTasks = tasks.where((task) => !task.isCompleted).toList();
+    List<Task> pendingTasks = moodTasks
+        .where((task) => !task.isCompleted)
+        .toList();
 
     return Scaffold(
       body: Container(
@@ -228,14 +228,13 @@ class _TodoListState extends State<TodoList>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDarkMode
-                ? [const Color(0xFF121212), const Color(0xFF1E1E1E)]
+                ? [const Color(0xFF121212), const Color(0xFF121212)]
                 : [currentMoodData['color'] ?? Colors.blue[50]!, Colors.white],
           ),
         ),
         child: SafeArea(
           child: Column(
             children: [
-              // Header with mood info
               Container(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -258,7 +257,7 @@ class _TodoListState extends State<TodoList>
                                   currentMoodData['darkColor']?.withOpacity(
                                     0.2,
                                   ) ??
-                                  Colors.blue.withOpacity(0.2),
+                                  Colors.blue.withValues(alpha: 0.2),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -299,7 +298,7 @@ class _TodoListState extends State<TodoList>
                       ),
                     ),
                     GestureDetector(
-                      onTap: _navigateToSettings, // UPDATED - Use new method
+                      onTap: _navigateToSettings,
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -313,17 +312,137 @@ class _TodoListState extends State<TodoList>
                 ),
               ),
 
-              // Tasks list
+              if (tasks.isNotEmpty)
+                Container(
+                  height: 110,
+                  margin: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.auto_awesome,
+                            color: currentMoodData['darkColor'],
+                            size: 18,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Smart Suggestions',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: isDarkMode
+                                  ? Colors.white
+                                  : currentMoodData['darkColor'],
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Expanded(
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children:
+                              SmartSuggestions.generateSuggestions(
+                                tasks,
+                                currentMood,
+                                DateTime.now(),
+                              ).map((suggestion) {
+                                return Container(
+                                  margin: EdgeInsets.only(right: 10),
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
+                                  constraints: BoxConstraints(maxWidth: 280),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: isDarkMode
+                                          ? [
+                                              currentMoodData['darkColor']
+                                                      ?.withValues(
+                                                        alpha: 0.3,
+                                                      ) ??
+                                                  Colors.blue.withValues(
+                                                    alpha: 0.3,
+                                                  ),
+                                              currentMoodData['darkColor']
+                                                      ?.withValues(
+                                                        alpha: 0.1,
+                                                      ) ??
+                                                  Colors.blue.withValues(
+                                                    alpha: 0.1,
+                                                  ),
+                                            ]
+                                          : [
+                                              currentMoodData['color']
+                                                      ?.withValues(
+                                                        alpha: 0.8,
+                                                      ) ??
+                                                  Colors.blue[100]!,
+                                              currentMoodData['color']
+                                                      ?.withValues(
+                                                        alpha: 0.5,
+                                                      ) ??
+                                                  Colors.blue[50]!,
+                                            ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color:
+                                          currentMoodData['darkColor']
+                                              ?.withValues(alpha: 0.4) ??
+                                          Colors.blue,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.lightbulb,
+                                        size: 16,
+                                        color: currentMoodData['darkColor'],
+                                      ),
+                                      SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          suggestion,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: isDarkMode
+                                                ? Colors.white
+                                                : currentMoodData['darkColor'],
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
               Expanded(
-                child: tasks.isEmpty
+                child: moodTasks.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text('📝', style: TextStyle(fontSize: 80)),
-                            const SizedBox(height: 20),
                             Text(
-                              'No tasks yet!',
+                              currentMoodData['emoji'] ?? '📝',
+                              style: TextStyle(fontSize: 80),
+                            ),
+                            SizedBox(height: 20),
+                            Text(
+                              'No ${currentMoodData['name']} tasks yet!',
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -332,15 +451,16 @@ class _TodoListState extends State<TodoList>
                                     : currentMoodData['darkColor'],
                               ),
                             ),
-                            const SizedBox(height: 10),
+                            SizedBox(height: 10),
                             Text(
-                              'Tap the + button to add your first task',
+                              'Add tasks for your ${currentMoodData['name']} mood',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: isDarkMode
                                     ? Colors.white70
                                     : Colors.grey[600],
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
@@ -351,7 +471,6 @@ class _TodoListState extends State<TodoList>
                           return ListView(
                             padding: const EdgeInsets.all(20),
                             children: [
-                              // Pending tasks
                               if (pendingTasks.isNotEmpty) ...[
                                 Text(
                                   'To Do (${pendingTasks.length})',
@@ -378,11 +497,10 @@ class _TodoListState extends State<TodoList>
                                         ),
                                     child: _buildTaskCard(task),
                                   );
-                                }).toList(),
+                                }),
                                 const SizedBox(height: 30),
                               ],
 
-                              // Completed tasks
                               if (completedTasks.isNotEmpty) ...[
                                 Text(
                                   'Completed (${completedTasks.length})',
@@ -403,7 +521,7 @@ class _TodoListState extends State<TodoList>
                                     ).animate(_listController),
                                     child: _buildTaskCard(task),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ],
                           );
@@ -415,7 +533,6 @@ class _TodoListState extends State<TodoList>
         ),
       ),
 
-      // Floating Action Button
       floatingActionButton: ScaleTransition(
         scale: _fabController,
         child: FloatingActionButton.extended(
@@ -431,7 +548,6 @@ class _TodoListState extends State<TodoList>
     );
   }
 
-  // Build individual task card
   Widget _buildTaskCard(Task task) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -462,15 +578,18 @@ class _TodoListState extends State<TodoList>
               color: task.isCompleted
                   ? (isDarkMode ? Colors.grey[600]! : Colors.grey[300]!)
                   : (isDarkMode
-                        ? currentMoodData['darkColor']?.withOpacity(0.3) ??
-                              Colors.blue.withOpacity(0.3)
+                        ? currentMoodData['darkColor']?.withValues(
+                                alpha: 0.3,
+                              ) ??
+                              Colors.blue.withValues(alpha: 0.3)
                         : currentMoodData['color'] ?? Colors.blue[100]!),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: (currentMoodData['darkColor'] ?? Colors.blue)
-                    .withOpacity(isDarkMode ? 0.2 : 0.1),
+                color: (currentMoodData['darkColor'] ?? Colors.blue).withValues(
+                  alpha: isDarkMode ? 0.2 : 0.1,
+                ),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -478,7 +597,6 @@ class _TodoListState extends State<TodoList>
           ),
           child: Row(
             children: [
-              // Completion checkbox
               GestureDetector(
                 onTap: () => _toggleTask(task.id),
                 child: AnimatedContainer(
@@ -507,7 +625,6 @@ class _TodoListState extends State<TodoList>
 
               const SizedBox(width: 12),
 
-              // Category icon
               Text(
                 _getCategoryIcon(task.category),
                 style: const TextStyle(fontSize: 20),
@@ -515,7 +632,6 @@ class _TodoListState extends State<TodoList>
 
               const SizedBox(width: 12),
 
-              // Task content
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,7 +671,6 @@ class _TodoListState extends State<TodoList>
                 ),
               ),
 
-              // Mood indicator
               Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(

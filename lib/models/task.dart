@@ -6,7 +6,7 @@ class Task {
   String category;
   DateTime createdAt;
   String mood;
-
+  DateTime? reminderTime;
   Task({
     required this.id,
     required this.title,
@@ -15,9 +15,9 @@ class Task {
     this.category = 'general',
     required this.createdAt,
     required this.mood,
+    this.reminderTime,
   });
 
-  // Convert Task to Map for saving
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -27,10 +27,10 @@ class Task {
       'category': category,
       'createdAt': createdAt.millisecondsSinceEpoch,
       'mood': mood,
+      'reminderTime': reminderTime?.toIso8601String(),
     };
   }
 
-  // Create Task from Map
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
       id: map['id'] ?? '',
@@ -40,6 +40,9 @@ class Task {
       category: map['category'] ?? 'general',
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
       mood: map['mood'] ?? 'happy',
+      reminderTime: map['reminderTime'] != null
+          ? DateTime.parse(map['reminderTime'])
+          : null,
     );
   }
 }

@@ -57,6 +57,13 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
       'color': const Color(0xFFFCE4EC),
       'darkColor': const Color(0xFFC2185B),
     },
+    'motivated': {
+      'emoji': '🔥',
+      'name': 'Motivated',
+      'color': const Color(0xFFFFEBEE), // Light Orange
+      'darkColor': const Color(0xFFD32F2F), // Bright Red-Orange
+      'description': 'Ready to crush goals!',
+    },
   };
 
   @override
@@ -131,7 +138,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     }
   }
 
-  // Load settings
   Future<void> _loadSettings() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -140,7 +146,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     });
   }
 
-  // Calculate mood history
   void _calculateMoodHistory() {
     moodHistory.clear();
     for (Task task in allTasks) {
@@ -149,7 +154,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     setState(() {});
   }
 
-  // Toggle dark mode - NOW ACTUALLY APPLIES THE THEME
   Future<void> _toggleDarkMode(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dark_mode', value);
@@ -158,12 +162,10 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
       isDarkMode = value;
     });
 
-    // Call the callback to update the main app theme
     if (widget.onThemeChanged != null) {
       widget.onThemeChanged!(value);
     }
 
-    // Show feedback
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(value ? 'Dark mode enabled' : 'Light mode enabled'),
@@ -174,7 +176,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     );
   }
 
-  // Toggle notifications
   Future<void> _toggleNotifications(bool value) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications', value);
@@ -183,7 +184,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     });
   }
 
-  // Clear all data
   Future<void> _clearAllData() async {
     showDialog(
       context: context,
@@ -218,7 +218,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
               onPressed: () async {
                 SharedPreferences prefs = await SharedPreferences.getInstance();
                 await prefs.clear();
-                // ignore: use_build_context_synchronously
                 Navigator.of(context).pop();
                 Navigator.pushReplacementNamed(context, '/mood-selector');
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -245,14 +244,12 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     );
   }
 
-  // Get completion percentage
   double _getCompletionPercentage() {
     if (allTasks.isEmpty) return 0.0;
     int completedTasks = allTasks.where((task) => task.isCompleted).length;
     return completedTasks / allTasks.length;
   }
 
-  // Get most used mood
   String _getMostUsedMood() {
     if (moodHistory.isEmpty) return 'No data yet';
 
@@ -263,7 +260,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     return '${moods[mostUsedMood]?['emoji']} ${moods[mostUsedMood]?['name']}';
   }
 
-  // Get theme-aware colors
   Color getBackgroundColor() {
     return isDarkMode
         ? const Color(0xFF121212)
@@ -301,7 +297,7 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: isDarkMode
-                ? [const Color(0xFF121212), const Color(0xFF1E1E1E)]
+                ? [const Color(0xFF121212), const Color(0xFF121212)]
                 : [currentMoodData['color'] ?? Colors.blue[50]!, Colors.white],
           ),
         ),
@@ -322,7 +318,7 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                           borderRadius: BorderRadius.circular(12),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -363,7 +359,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                 ),
               ),
 
-              // Main content with dark mode support
               Expanded(
                 child: SlideTransition(
                   position: _slideAnimation,
@@ -372,7 +367,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Statistics Section
                         AnimatedBuilder(
                           animation: _statsAnimation,
                           builder: (context, child) {
@@ -386,8 +380,8 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(
-                                        isDarkMode ? 0.3 : 0.1,
+                                      color: Colors.black.withValues(
+                                        alpha: isDarkMode ? 0.3 : 0.1,
                                       ),
                                       blurRadius: 15,
                                       offset: const Offset(0, 5),
@@ -419,7 +413,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                                     ),
                                     const SizedBox(height: 20),
 
-                                    // Stats Grid
                                     Row(
                                       children: [
                                         Expanded(
@@ -467,7 +460,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
 
                                     const SizedBox(height: 20),
 
-                                    // Most used mood
                                     Container(
                                       width: double.infinity,
                                       padding: const EdgeInsets.all(16),
@@ -513,7 +505,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
 
                         const SizedBox(height: 30),
 
-                        // App Settings
                         Text(
                           'App Settings',
                           style: TextStyle(
@@ -526,15 +517,14 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                         ),
                         const SizedBox(height: 12),
 
-                        // Settings options
                         Container(
                           decoration: BoxDecoration(
                             color: _getCardColor(),
                             borderRadius: BorderRadius.circular(15),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(
-                                  isDarkMode ? 0.3 : 0.05,
+                                color: Colors.black.withValues(
+                                  alpha: isDarkMode ? 0.3 : 0.05,
                                 ),
                                 blurRadius: 10,
                                 offset: const Offset(0, 2),
@@ -554,7 +544,8 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                                 trailing: Switch(
                                   value: isDarkMode,
                                   onChanged: _toggleDarkMode,
-                                  activeColor: currentMoodData['darkColor'],
+                                  activeThumbColor:
+                                      currentMoodData['darkColor'],
                                 ),
                               ),
                               const Divider(height: 1, indent: 60),
@@ -565,7 +556,8 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
                                 trailing: Switch(
                                   value: notificationsEnabled,
                                   onChanged: _toggleNotifications,
-                                  activeColor: currentMoodData['darkColor'],
+                                  activeThumbColor:
+                                      currentMoodData['darkColor'],
                                 ),
                               ),
                               const Divider(height: 1, indent: 60),
@@ -613,7 +605,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     );
   }
 
-  // Build stat card - WITH DARK MODE SUPPORT
   Widget _buildStatCard({
     required IconData icon,
     required String title,
@@ -623,9 +614,13 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? color.withOpacity(0.2) : color.withOpacity(0.1),
+        color: isDarkMode
+            ? color.withValues(alpha: 0.2)
+            : color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(isDarkMode ? 0.4 : 0.2)),
+        border: Border.all(
+          color: color.withValues(alpha: isDarkMode ? 0.4 : 0.2),
+        ),
       ),
       child: Column(
         children: [
@@ -654,7 +649,6 @@ class _SettingsState extends State<Settings> with TickerProviderStateMixin {
     );
   }
 
-  // Build settings item - WITH DARK MODE SUPPORT
   Widget _buildSettingsItem({
     required IconData icon,
     required String title,
